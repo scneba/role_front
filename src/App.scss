@@ -1,0 +1,44 @@
+//App colours
+$ocean-blue: #016ea7;
+$fire-orange: #f89732;
+$leaf-green: #8fc640;
+$charcoal-gray: #282828;
+$stone-gray: #bcbec0;
+$lava-orange: #df5426;
+$midnight-blue: #143055;
+$forest-green: #1f8f45;
+
+// https://getbootstrap.com/docs/4.4/getting-started/theming/#theme-colors
+$theme-colors: (
+  "primary": $ocean-blue,
+  "secondary": $charcoal-gray,
+  "success": $forest-green,
+  "danger": $lava-orange,
+  "warning": $fire-orange,
+  "info": $leaf-green,
+  "light": $stone-gray,
+  "dark": $midnight-blue,
+);
+
+//variables for reac-pro-sidebar
+//https://github.com/azouaoui-med/react-pro-sidebar
+$sidebar-bg-color: $ocean-blue;
+$sidebar-color: #adadad;
+$sidebar-width: 200px;
+$sidebar-collapsed-width: 80px;
+$highlight-color: #d8d8d8;
+$submenu-bg-color: #2b2b2b;
+$submenu-bg-color-collapsed: #2b2b2b;
+$icon-bg-color: #2b2b2b;
+$icon-size: 35px;
+
+.app {
+  margin-top: 100px;
+}
+.sidebar {
+  height: 100%;
+  margin-left: 0px;
+}
+
+@import "~bootstrap/scss/bootstrap";
+@import "~react-pro-sidebar/dist/scss/styles.scss";
