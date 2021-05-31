@@ -14,6 +14,7 @@ import { faMinusCircle } from "@fortawesome/free-solid-svg-icons";
 import { faHistory } from "@fortawesome/free-solid-svg-icons";
 import { faDirections } from "@fortawesome/free-solid-svg-icons";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faUserTag } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
   faSearch,
@@ -31,4 +32,5 @@ library.add(
   faHistory,
   faDirections,
   faTrash,
+  faUserTag,
 );

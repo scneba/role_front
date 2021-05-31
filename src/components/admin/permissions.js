@@ -195,7 +195,7 @@ function DeletePermission({ id, canDelete, fetchPermissions }) {
     let result = window.confirm(t("confirmDel"));
     if (result === true) {
       adminApi
-        .deletePermission({ id })
+        .deletePermission(id)
         .then((response) => {
           fetchPermissions();
           alert(t("shared:success"));

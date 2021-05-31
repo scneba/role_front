@@ -8,7 +8,10 @@ import { UserContext } from "./components/login/userContext";
 import SideNav from "./components/nav/sidenav";
 import TopNav from "./components/nav/topbar";
 import Permissions from "./components/admin/permissions";
-import Arts from "./components/home/arts";
+import RolesList from "./components/admin/roles";
+import RolePermissionsList from "./components/admin/role_list";
+import UserRoleList from "./components/admin/user_list";
+import UserList from "./components/admin/users";
 import LoginPage from "./components/login/loginPage";
 import { getCurrentUser } from "./services/auth";
 require("dotenv").config();
@@ -44,8 +47,17 @@ function App() {
               <Route exact path="/admin/permissions">
                 <Permissions></Permissions>
               </Route>
-              <Route exact path="/arts">
-                <Arts></Arts>
+              <Route exact path="/admin/roles">
+                <RolesList />
+              </Route>
+              <Route path="/admin/roles/:id">
+                <RolePermissionsList />
+              </Route>
+              <Route path="/admin/users/:id">
+                <UserRoleList />
+              </Route>
+              <Route exact path="/admin/users">
+                <UserList />
               </Route>
               <Route exact path="/login">
                 <LoginPage setUser={setUser} />
