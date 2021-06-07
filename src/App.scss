@@ -1,19 +1,20 @@
 //App colours
-$ocean-blue: #016ea7;
+$zaffre: #0818a8;
+$ultramarine: #581845;
 $fire-orange: #f89732;
 $leaf-green: #8fc640;
 $charcoal-gray: #282828;
 $stone-gray: #bcbec0;
-$lava-orange: #df5426;
+$carmine: #d70040;
 $midnight-blue: #143055;
 $forest-green: #1f8f45;
 
 // https://getbootstrap.com/docs/4.4/getting-started/theming/#theme-colors
 $theme-colors: (
-  "primary": $ocean-blue,
-  "secondary": $charcoal-gray,
+  "primary": $zaffre,
+  "secondary": $ultramarine,
   "success": $forest-green,
-  "danger": $lava-orange,
+  "danger": $carmine,
   "warning": $fire-orange,
   "info": $leaf-green,
   "light": $stone-gray,
@@ -22,7 +23,7 @@ $theme-colors: (
 
 //variables for reac-pro-sidebar
 //https://github.com/azouaoui-med/react-pro-sidebar
-$sidebar-bg-color: $ocean-blue;
+$sidebar-bg-color: $zaffre;
 $sidebar-color: #adadad;
 $sidebar-width: 200px;
 $sidebar-collapsed-width: 80px;
@@ -37,6 +38,7 @@ $icon-size: 35px;
 }
 .sidebar {
   height: 100%;
+  position: relative;
   margin-left: 0px;
 }
 

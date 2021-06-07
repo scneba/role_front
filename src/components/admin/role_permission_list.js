@@ -8,24 +8,25 @@ import { usePermissions, Unauthorized } from "../permissions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as alerts from "../generics/alerts";
 import Select from "react-select";
+import Skeleton from "react-loading-skeleton";
 
 export default function RolePermissionsList() {
   const { id } = useParams();
   const history = useHistory();
-  const canView = usePermissions(adminApi.PAGES_PATH);
+  const canView = usePermissions(adminApi.ROLES_PATH);
   const [role, setRole] = useState({ users: [], permissions: [] });
+  const [loading, setLoading] = useState(true);
 
   const fetchRole = useCallback(
     async function () {
       try {
-        console.log(id);
+        setLoading(true);
         const resp = await adminApi.getSingleRole(id);
-        console.log(resp.data);
         setRole(resp.data.data);
-      } catch (e) {
-        const msg = JSON.stringify(e);
-        alerts.showPopup(msg);
+      } catch (err) {
+        alerts.showErrorsPopUp(err);
       }
+      setLoading(false);
     },
     [id],
   );
@@ -36,6 +37,9 @@ export default function RolePermissionsList() {
 
   if (!canView) {
     return <Unauthorized />;
+  }
+  if (loading) {
+    return <Skeleton height={40} count="4" className="m-3" />;
   }
 
   return <RolePermissions role={role} fetchRole={fetchRole} />;
@@ -85,8 +89,14 @@ function PermissionRow({ permission, roleId, fetchRole }) {
   );
 }
 
+/**
+ * Delete role permission pair
+ * @param {*} param0
+ * @returns
+ */
 function DeleteRolePermission({ roleId, permissionId, fetchRole }) {
   const { t } = useTranslation(["admin"]);
+  const canDelete = usePermissions(adminApi.ROLES_PATH, "DELETE");
   const deletePermission = async () => {
     let result = window.confirm(t("confirmDel"));
     if (result === true) {
@@ -94,15 +104,15 @@ function DeleteRolePermission({ roleId, permissionId, fetchRole }) {
       try {
         await adminApi.deleteRolePermission(data);
         fetchRole();
-        alert(t("shared:success"));
-      } catch (e) {
-        const msg = JSON.stringify(e);
-        alerts.showPopup(msg);
+        alerts.showPopup(t("shared:success"), "success");
+      } catch (err) {
+        console.log(err);
+        alerts.showErrorsPopUp(err);
       }
     }
   };
   return (
-    <Button onClick={deletePermission}>
+    <Button disabled={!canDelete} onClick={deletePermission}>
       <FontAwesomeIcon icon="trash"></FontAwesomeIcon>
     </Button>
   );
@@ -113,14 +123,15 @@ export function AssignPermission({ role, fetchRole }) {
   const [disableSave, setDisableSave] = useState(true);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [permissions, setPermissions] = useState(role.permissions);
+  const canAssign = usePermissions(adminApi.ROLES_PATH, "POST");
 
   async function fetchPermissions() {
     try {
       const resp = await adminApi.getPermissions();
       setPermissions(resp.data.data);
     } catch (err) {
-      const msg = JSON.stringify(err);
-      alerts.showPopup(msg);
+      console.log(err);
+      alerts.showErrorsPopUp(err);
     }
   }
 
@@ -129,22 +140,22 @@ export function AssignPermission({ role, fetchRole }) {
   }, []);
 
   if (permissions.length === 0) {
-    return "Loading...";
+    return null;
   }
   var options = helpers.getUnassignedPermissions(permissions, role.permissions);
 
   const assignPermission = async (e) => {
     e.preventDefault();
     if (!selectedOptions) {
-      alerts.showPopup("No permission to assign");
+      alerts.showPopup(t("noPermissionAdded"));
       return;
     }
     let permission_ids = helpers.getPermissionIds(selectedOptions);
     let result;
     if (permission_ids.length === 1) {
-      result = window.confirm(t("confirmAssign"));
+      result = window.confirm(t("confirmAssignPerm"));
     } else {
-      result = window.confirm(t("confirmAssigns"));
+      result = window.confirm(t("confirmAssignPerms"));
     }
     if (result === true) {
       setDisableSave(true);
@@ -153,10 +164,9 @@ export function AssignPermission({ role, fetchRole }) {
         await adminApi.updateRole(data);
         setSelectedOptions([]);
         fetchRole();
-        alert(t("shared:success"));
+        alerts.showPopup(t("shared:success"), "success");
       } catch (err) {
-        const msg = JSON.stringify(e);
-        alerts.showPopup(msg);
+        alerts.showErrorsPopUp(err);
       }
     }
   };
@@ -172,7 +182,7 @@ export function AssignPermission({ role, fetchRole }) {
         <Form.Row>
           <Col>
             <Select
-              placeholder={t("defaultValue")}
+              placeholder={t("permissions")}
               isMulti
               value={selectedOptions}
               onChange={handleChange}
@@ -182,7 +192,7 @@ export function AssignPermission({ role, fetchRole }) {
           </Col>
           <Col>
             <Button
-              disabled={disableSave}
+              disabled={disableSave || !canAssign}
               variant="danger"
               onClick={assignPermission}
             >

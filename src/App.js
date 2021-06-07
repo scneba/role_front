@@ -9,8 +9,8 @@ import SideNav from "./components/nav/sidenav";
 import TopNav from "./components/nav/topbar";
 import Permissions from "./components/admin/permissions";
 import RolesList from "./components/admin/roles";
-import RolePermissionsList from "./components/admin/role_list";
-import UserRoleList from "./components/admin/user_list";
+import RolePermissionsList from "./components/admin/role_permission_list";
+import UserRoleList from "./components/admin/user_role_list";
 import UserList from "./components/admin/users";
 import LoginPage from "./components/login/loginPage";
 import { getCurrentUser } from "./services/auth";
@@ -40,10 +40,10 @@ function App() {
       <Router>
         <TopNav setUser={setUser} />
         <ToastContainer />
-        <Container as={Row}>
+        <Container as={Row} fluid>
           <SideNav />
-          <Col sm={6} md={9}>
-            <Switch className="app">
+          <Col>
+            <Switch>
               <Route exact path="/admin/permissions">
                 <Permissions></Permissions>
               </Route>

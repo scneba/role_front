@@ -1,22 +1,27 @@
 import { useContext } from "react";
 import { Navbar, NavDropdown, NavItem, Nav, Dropdown } from "react-bootstrap";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { UserContext } from "../login/userContext";
 import logo from "../../logo.svg";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 import React from "react";
 import { logout } from "../../services/auth";
 
+/**
+ * Static Nav bar at the top of the view
+ * @param {*} param0
+ * @returns
+ */
 export default function TopNav({ setUser }) {
   const { t } = useTranslation(["nav"]);
   const user = useContext(UserContext);
   return (
-    <Navbar collapseOnSelect expand="lg" bg="primary" variant="dark">
+    <Navbar expand="lg" sticky="top" bg="primary" variant="dark">
       <Navbar.Brand as={Link} to="/">
         <Brand>Endesha</Brand>
       </Navbar.Brand>
-      <Navbar.Collapse id="responsive-navbar-nav">
+      <Navbar.Toggle aria-controls="endesha-nav" />
+      <Navbar.Collapse id="endesha-nav">
         <Nav className="mx-auto my-3">
           <NavDropdown
             title={t("high_way_code")}
@@ -104,10 +109,13 @@ function Brand({ children }) {
 }
 
 function LogoutButton({ setUser }) {
+  const history = useHistory();
+  const { t } = useTranslation(["nav"]);
   async function logoutAmini() {
     await logout();
     setUser(null);
+    history.push("/login");
   }
 
-  return <div onClick={logoutAmini}>Logout</div>;
+  return <div onClick={logoutAmini}>{t("logout")}</div>;
 }

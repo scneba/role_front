@@ -7,41 +7,42 @@ import { useHistory } from "react-router-dom";
 
 import { usePermissions, Unauthorized } from "../permissions";
 import * as adminApi from "../../services/admin";
+import Skeleton from "react-loading-skeleton";
+import { FormErrors } from "../generics/forms";
 
 const UserList = () => {
   const { t } = useTranslation(["admin"]);
 
-  const canView = usePermissions(adminApi.PAGES_PATH);
+  const canView = usePermissions(adminApi.USERS_PATH);
   const [users, setUsers] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchUsers = useCallback(async function () {
     try {
+      setLoading(true);
       const resp = await adminApi.getUsers();
       setUsers(resp.data.data);
     } catch (err) {
       console.log(err);
-      const message = JSON.stringify(err);
-      alerts.showPopup(message);
+      alerts.showErrorsPopUp(err);
     }
-    setIsLoaded(true);
+    setLoading(false);
   });
   useEffect(() => {
-    if (!isLoaded) fetchUsers();
-    // eslint-disable-next-line
-  }, [t]);
+    fetchUsers();
+  }, []);
 
   if (!canView) {
     return <Unauthorized />;
   }
-  if (!isLoaded) {
-    return "Loading...";
+  if (loading) {
+    return <Skeleton height={40} count="4" className="m-3" />;
   }
 
   return (
     <div>
       <h1 className="mb-3 display-4 text-primary">
-        <FontAwesomeIcon icon="user_tag" /> {t("users")}
+        <FontAwesomeIcon icon="user-tag" /> {t("users")}
       </h1>
       <AddUserForm fetchUsers={fetchUsers} />
       <UserTable users={users} fetchUsers={fetchUsers} />
@@ -102,7 +103,7 @@ const UserCard = ({ user, fetchUsers }) => {
 
 const UserDetails = ({ user, fetchUsers }) => {
   const { t } = useTranslation(["admin"]);
-  const canDeleteUser = usePermissions(adminApi.PAGES_PATH, "POST");
+  const canDeleteUser = usePermissions(adminApi.USERS_PATH, "DELETE");
 
   const history = useHistory();
 
@@ -140,20 +141,17 @@ const UserDetails = ({ user, fetchUsers }) => {
 
 function DeleteUser({ id, canDeleteUser, fetchUsers }) {
   const { t } = useTranslation(["admin", "shared"]);
-  const deleteUser = () => {
-    let result = window.confirm(t("confirmRoleDelete"));
+  const deleteUser = async () => {
+    let result = window.confirm(t("confirmUserDelete"));
     if (result === true) {
-      adminApi
-        .deleteUser(id)
-        .then((response) => {
-          fetchUsers();
-          alert(t("shared:success"));
-        })
-        .catch((err) => {
-          console.log(err);
-          const message = JSON.stringify(err);
-          alerts.showPopup(message);
-        });
+      try {
+        adminApi.deleteUser(id);
+        fetchUsers();
+        alerts.showPopup(t("shared:success"));
+      } catch (err) {
+        console.log(err);
+        alerts.showErrorsPopUp(err);
+      }
     }
   };
 
@@ -177,18 +175,23 @@ export function AddUserForm({ fetchUsers }) {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState([]);
+  const [saving, setSaving] = useState(false);
 
-  const canAddUser = usePermissions(adminApi.PAGES_PATH, "POST");
+  const canAddUser = usePermissions(adminApi.USERS_PATH, "POST");
 
   const addUser = async () => {
     try {
+      setErrors([]);
+      setSaving(true);
       await adminApi.createUser({ name, username, email, password });
       fetchUsers();
       alerts.showPopup(t("shared:success"), "success");
-    } catch (error) {
-      const message = JSON.stringify(error);
-      alerts.showPopup(message);
+    } catch (err) {
+      console.log(err);
+      alerts.showErrors(err, setErrors);
     }
+    setSaving(false);
   };
 
   const handleSubmit = (e) => {
@@ -199,46 +202,49 @@ export function AddUserForm({ fetchUsers }) {
   return (
     <Form onSubmit={handleSubmit} className="mb-4">
       <Form.Row>
-        <Col xs={6} md={3}>
+        <FormErrors errors={errors}></FormErrors>
+      </Form.Row>
+      <Form.Row>
+        <Col xs={6} md={2}>
           <Form.Control
             required
             value={name}
-            placeholder={t("newUserEmail")}
+            placeholder={t("name")}
             onChange={(e) => setName(e.target.value)}
             disabled={!canAddUser}
             title={!canAddUser ? t("noPermission") : null}
             className="p-1"
           />
         </Col>
-        <Col xs={6} md={3}>
+        <Col xs={6} md={2}>
           <Form.Control
             required
             value={username}
-            placeholder={t("newUserName")}
+            placeholder={t("username")}
             onChange={(e) => setUsername(e.target.value)}
             disabled={!canAddUser}
             title={!canAddUser ? t("noPermission") : null}
             className="p-1"
           />
         </Col>
-        <Col xs={6} md={3}>
+        <Col xs={6} md={2}>
           <Form.Control
             value={email}
             type="email"
             required
-            placeholder={t("newUserEmail")}
+            placeholder={t("email")}
             onChange={(e) => setEmail(e.target.value)}
             disabled={!canAddUser}
             title={!canAddUser ? t("noPermission") : null}
             className="p-1"
           />
         </Col>
-        <Col xs={6} md={3}>
+        <Col xs={6} md={2}>
           <Form.Control
             value={password}
             type="password"
             required
-            placeholder={t("newUserPassword")}
+            placeholder={t("password")}
             onChange={(e) => setPassword(e.target.value)}
             disabled={!canAddUser}
             title={!canAddUser ? t("noPermission") : null}
@@ -254,7 +260,7 @@ export function AddUserForm({ fetchUsers }) {
             title={!canAddUser ? t("noPermission") : null}
           >
             <FontAwesomeIcon icon="plus" className="mr-2"></FontAwesomeIcon>
-            {t("shared:add")}
+            {saving ? t("shared:saving") : t("addUser")}
           </Button>
         </Col>
       </Form.Row>

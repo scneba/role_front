@@ -1,25 +1,31 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { usePermissions, Unauthorized } from "../permissions";
 import * as adminApi from "../../services/admin";
 import { Table, Form, Col, Button, Row } from "react-bootstrap";
 import { useTranslation } from "react-i18next";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { showPopup, showErrors, showErrorsPopUp } from "../generics/alerts";
+import { FormErrors } from "../generics/forms";
+import Skeleton from "react-loading-skeleton";
 
 export default function Permissions() {
   const { t } = useTranslation(["admin"]);
-  const canView = usePermissions(adminApi.PAGES_PATH);
+  const canView = usePermissions(adminApi.PERMISSION_PATH);
   const [permissions, setPermissions] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   async function fetchPermissions() {
     try {
+      setLoading(true);
       const resp = await adminApi.getPermissions();
       setPermissions(
         resp.data.data.sort((a, b) => a.path.localeCompare(b.path)),
       );
     } catch (err) {
-      alert(err);
-      console.error(err);
+      console.log(err);
+      showErrorsPopUp(err);
     }
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -29,14 +35,15 @@ export default function Permissions() {
   if (!canView) {
     return <Unauthorized />;
   }
-  if (permissions.length === 0) {
-    return "Loading";
+  //show skeleton if permissions are not yet loaded
+  if (loading) {
+    return <Skeleton height={40} count="4" className="m-3" />;
   }
   return (
     <React.Fragment>
-      <Row className="mb-3">
-        <h3 className="text-primary d-inline mr-3 col">{t("permissions")}</h3>
-      </Row>
+      <h1 className="mb-3 display-4 text-primary">
+        <FontAwesomeIcon icon="user-tag" /> {t("permissions")}
+      </h1>
       <CreatePermissionForm fetchPermissions={fetchPermissions} />
       <PermissionsTable
         permissions={permissions}
@@ -50,7 +57,9 @@ export function CreatePermissionForm({ fetchPermissions }) {
   const { t } = useTranslation(["admin", "shared"]);
   const [verb, setVerb] = useState("GET");
   const [path, setPath] = useState("");
-  const canCreate = usePermissions(adminApi.PAGES_PATH, "POST");
+  const canCreate = usePermissions(adminApi.PERMISSION_PATH, "POST");
+  const [errors, setErrors] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   if (!canCreate) {
     return <React.Fragment />;
@@ -58,25 +67,28 @@ export function CreatePermissionForm({ fetchPermissions }) {
 
   const verbs = ["GET", "POST", "PATCH", "PUT", "DELETE"];
 
-  const createPermission = (e) => {
+  const createPermission = async (e) => {
     e.preventDefault();
     var data = { verb, path };
-    adminApi
-      .createPermission(data)
-      .then((resp) => {
-        fetchPermissions();
-        alert(t("shared:success"));
-      })
-      .catch((e) => {
-        console.log(e);
-        alert(e);
-        alert(t("shared:internalError"));
-      });
-    setPath("");
-    setVerb("GET");
+    try {
+      setErrors([]);
+      setSaving(true);
+      await adminApi.createPermission(data);
+      fetchPermissions();
+      showPopup(t("shared:success"), "success");
+      setPath("");
+      setVerb("GET");
+    } catch (err) {
+      console.log(err);
+      showErrors(err, setErrors);
+    }
+    setSaving(false);
   };
   return (
-    <Form className="mb-3" onSubmit={(event) => event.preventDefault()}>
+    <Form className="mb-3" onSubmit={createPermission}>
+      <Form.Row>
+        <FormErrors errors={errors}></FormErrors>
+      </Form.Row>
       <Form.Row>
         <Col sm={3} lg={2}>
           <Form.Control
@@ -98,6 +110,7 @@ export function CreatePermissionForm({ fetchPermissions }) {
           <Form.Control
             type="text"
             name="path"
+            required
             value={path}
             onChange={(e) => setPath(e.target.value)}
             placeholder={t("path")}
@@ -106,10 +119,11 @@ export function CreatePermissionForm({ fetchPermissions }) {
         <Col>
           <Button
             variant="primary"
+            type="submit"
+            disabled={saving}
             style={{ marginLeft: "auto" }}
-            onClick={createPermission}
           >
-            {t("add")}
+            {saving ? t("shared:saving") : t("addPerm")}
           </Button>
         </Col>
       </Form.Row>
@@ -118,10 +132,10 @@ export function CreatePermissionForm({ fetchPermissions }) {
 }
 
 export function PermissionsTable({ permissions, fetchPermissions }) {
-  const { t } = useTranslation(["permissions"]);
+  const { t } = useTranslation(["admin"]);
   const [search, setSearch] = useState("");
   const [filteredPermissions, setFilteredPermissions] = useState(permissions);
-  const canDelete = usePermissions(adminApi.PAGES_PATH, "POST");
+  const canDelete = usePermissions(adminApi.PERMISSION_PATH, "DELETE");
 
   useEffect(() => {
     setFilteredPermissions(
@@ -143,7 +157,7 @@ export function PermissionsTable({ permissions, fetchPermissions }) {
               type="text"
               name="Search"
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("Search")}
+              placeholder={t("shared:search")}
             ></Form.Control>
           </Form>
         </Col>
@@ -155,7 +169,7 @@ export function PermissionsTable({ permissions, fetchPermissions }) {
               <tr>
                 <th>{t("verb")}</th>
                 <th>{t("path")}</th>
-                <th>{t("del")}</th>
+                <th>{t("shared:delete")}</th>
               </tr>
             </thead>
             <tbody>
@@ -191,19 +205,17 @@ export function PermissionsTable({ permissions, fetchPermissions }) {
 
 function DeletePermission({ id, canDelete, fetchPermissions }) {
   const { t } = useTranslation(["admin", "shared"]);
-  const deletePermission = () => {
+  const deletePermission = async () => {
     let result = window.confirm(t("confirmDel"));
     if (result === true) {
-      adminApi
-        .deletePermission(id)
-        .then((response) => {
-          fetchPermissions();
-          alert(t("shared:success"));
-        })
-        .catch((e) => {
-          console.error(e);
-          alert(t("shared:internalError"));
-        });
+      try {
+        await adminApi.deletePermission(id);
+        fetchPermissions();
+        showPopup(t("shared:success"), "success");
+      } catch (err) {
+        console.log(err);
+        showErrorsPopUp(err);
+      }
     }
   };
 

@@ -8,14 +8,14 @@ export const en = {
   edit: "Edit",
   delete: "Delete",
   save: "Save",
+  savging: "Saving",
   add: "Add",
   name: "Name",
-  createdAt: "Created On",
-  updatedAt: "Updated On",
 
   submit: "Submit",
   saving: "Saving",
   register: "Register",
+  requestFailedwithErrors: "The request failed with the following errors:",
 };
 
 export const fr = {};

@@ -1,48 +1,49 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Accordion, Card, Button, Row, Col, Form } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUserTag } from "@fortawesome/free-solid-svg-icons";
 import { useTranslation } from "react-i18next";
 import * as alerts from "../generics/alerts";
 import { useHistory } from "react-router-dom";
+import { FormErrors } from "../generics/forms";
 
 import { usePermissions, Unauthorized } from "../permissions";
 import * as adminApi from "../../services/admin";
+import Skeleton from "react-loading-skeleton";
 
 const RolesList = () => {
   const { t } = useTranslation(["admin"]);
 
-  const canView = usePermissions(adminApi.PAGES_PATH);
+  const canView = usePermissions(adminApi.ROLES_PATH);
   const [roles, setRoles] = useState([]);
-  const [isLoaded, setIsLoaded] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchRoles = useCallback(async function () {
     try {
+      setLoading(true);
       const resp = await adminApi.getRoles();
       setRoles(resp.data.data);
     } catch (err) {
       console.log(err);
-      const message = JSON.stringify(err);
-      alerts.showPopup(message);
+      alerts.showErrorsPopUp(err);
     }
-    setIsLoaded(true);
+    setLoading(false);
   });
   useEffect(() => {
-    if (!isLoaded) fetchRoles();
+    fetchRoles();
     // eslint-disable-next-line
-  }, [isLoaded]);
+  }, []);
 
   if (!canView) {
     return <Unauthorized />;
   }
-  if (!isLoaded) {
-    return "Loading...";
+  if (loading) {
+    return <Skeleton height={40} count="4" className="m-3" />;
   }
 
   return (
     <div>
       <h1 className="mb-3 display-4 text-primary">
-        <FontAwesomeIcon icon={faUserTag} /> {t("roles")}
+        <FontAwesomeIcon icon="user-tag" /> {t("roles")}
       </h1>
       <AddRoleForm fetchRoles={fetchRoles} />
       <RoleTable roles={roles} fetchRoles={fetchRoles} />
@@ -102,9 +103,8 @@ const RoleCard = ({ role, fetchRoles }) => {
 };
 
 const RoleDetails = ({ role, fetchRoles }) => {
-  const { id, permissions, users } = role;
+  const { users } = role;
   const { t } = useTranslation(["admin"]);
-  const canDeleteRole = usePermissions(adminApi.PAGES_PATH, "POST");
 
   const history = useHistory();
 
@@ -117,22 +117,13 @@ const RoleDetails = ({ role, fetchRoles }) => {
       {users.map((user) => {
         return (
           <p variant="primary" key={user.email ? user.email : user.username}>
-            <b>
-              {user.email
-                ? user.email.toUpperCase()
-                : user.username.toUpperCase()}
-              :
-            </b>
+            <b>{user.email.toUpperCase()}</b>
           </p>
         );
       })}
 
       <p className="pb-4">
-        <DeleteRole
-          canDeleteRole={canDeleteRole}
-          id={role.id}
-          fetchRoles={fetchRoles}
-        />
+        <DeleteRole id={role.id} fetchRoles={fetchRoles} />
         <Button
           variant="primary"
           className="mr-2 p-2 pull-right"
@@ -145,21 +136,20 @@ const RoleDetails = ({ role, fetchRoles }) => {
   );
 };
 
-function DeleteRole({ id, canDeleteRole, fetchRoles }) {
+function DeleteRole({ id, fetchRoles }) {
   const { t } = useTranslation(["admin", "shared"]);
-  const deleteRole = () => {
+  const canDeleteRole = usePermissions(adminApi.ROLES_PATH, "DELETE");
+  const deleteRole = async () => {
     let result = window.confirm(t("confirmRoleDelete"));
     if (result === true) {
-      adminApi
-        .deleteRole(id)
-        .then((response) => {
-          fetchRoles();
-          alert(t("shared:success"));
-        })
-        .catch((e) => {
-          console.error(e);
-          alert(t("shared:internalError"));
-        });
+      try {
+        adminApi.deleteRole(id);
+        fetchRoles();
+        alerts.showPopup(t("shared:success"));
+      } catch (err) {
+        console.log(err);
+        alerts.showErrorsPopUp(err);
+      }
     }
   };
 
@@ -181,27 +171,31 @@ export function AddRoleForm({ fetchRoles }) {
   const { t } = useTranslation(["admin"]);
   const [name, setName] = useState("");
   const [description, setDescriptiion] = useState("");
+  const [errors, setErrors] = useState([]);
+  const [saving, setSaving] = useState(false);
 
-  const canAddRole = usePermissions(adminApi.PAGES_PATH, "POST");
+  const canAddRole = usePermissions(adminApi.ROLES_PATH, "POST");
 
-  const addRole = async () => {
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     try {
+      setErrors([]);
+      setSaving(true);
       await adminApi.createRole({ name, description });
       fetchRoles();
       alerts.showPopup(t("shared:success"), "success");
-    } catch (error) {
-      const message = JSON.stringify(error);
-      alerts.showPopup(message);
+    } catch (err) {
+      console.log(err);
+      alerts.showErrors(err, setErrors);
     }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    addRole(name, description);
+    setSaving(false);
   };
 
   return (
     <Form onSubmit={handleSubmit} className="mb-4">
+      <Form.Row>
+        <FormErrors errors={errors}></FormErrors>
+      </Form.Row>
       <Form.Row>
         <Col xs={6} md={3}>
           <Form.Control
@@ -233,7 +227,7 @@ export function AddRoleForm({ fetchRoles }) {
             title={!canAddRole ? t("noPermission") : null}
           >
             <FontAwesomeIcon icon="plus" className="mr-2"></FontAwesomeIcon>
-            {t("shared:add")}
+            {saving ? t("shared:saving") : t("shared:add")}
           </Button>
         </Col>
       </Form.Row>

@@ -1,8 +1,14 @@
 import React, { useContext } from "react";
 import { UserContext } from "./login/userContext";
-import { Row } from "react-bootstrap";
+import { Row, Button, Col } from "react-bootstrap";
+import { useLocation, useHistory } from "react-router-dom";
 
-// usePermissions hook determines if a user has permissions to access path/verb pair
+/**
+ * Determine if a user has permission to access a path and a verb
+ * @param {String} path
+ * @param {String} verb
+ * @returns bool
+ */
 export function usePermissions(path, verb) {
   verb = verb || "GET";
   const user = useContext(UserContext);
@@ -22,11 +28,30 @@ export function usePermissions(path, verb) {
 }
 
 export function Unauthorized() {
+  const currentLocation = useLocation();
+  const user = useContext(UserContext);
+  const history = useHistory();
+  const redirectURL = "/login?redirect=" + currentLocation.pathname;
+
+  function redirect() {
+    history.push(redirectURL);
+  }
   return (
     <Row>
-      <h1 className=" text-primary">
-        Sorry, you do not have permission to access this page
-      </h1>
+      <Col>
+        <h1 className=" text-primary">
+          Sorry, you do not have permission to access this page
+        </h1>
+      </Col>
+      {user ? (
+        <br />
+      ) : (
+        <Col>
+          <Button variant="danger" onClick={redirect}>
+            Login
+          </Button>
+        </Col>
+      )}
     </Row>
   );
 }

@@ -13,4 +13,8 @@ export const en = {
   driving_practice: "Driving Practice",
   questions_and_answers: "Questions and Answers",
   take_test: "Take Test",
+  admin: "Admin",
+  noPermission: "User does not have permissions",
+  endesha: "Endesha",
+  logout: "Logout",
 };

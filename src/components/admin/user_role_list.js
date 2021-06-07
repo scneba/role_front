@@ -8,17 +8,19 @@ import { usePermissions, Unauthorized } from "../permissions";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import * as alerts from "../generics/alerts";
 import Select from "react-select";
+import Skeleton from "react-loading-skeleton";
 
 export default function UserRoleList() {
   const { id } = useParams();
   const history = useHistory();
-  const canView = usePermissions(adminApi.PAGES_PATH);
+  const canView = usePermissions(adminApi.USERS_PATH);
   const [user, setUser] = useState({ roles: [] });
+  const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(
     async function () {
       try {
-        console.log(id);
+        setLoading(true);
         const resp = await adminApi.getSingleUser(id);
         console.log(resp.data);
         setUser(resp.data.data);
@@ -26,6 +28,7 @@ export default function UserRoleList() {
         const msg = JSON.stringify(e);
         alerts.showPopup(msg);
       }
+      setLoading(false);
     },
     [id],
   );
@@ -36,6 +39,10 @@ export default function UserRoleList() {
 
   if (!canView) {
     return <Unauthorized />;
+  }
+  //show skeleton if still loading
+  if (loading) {
+    return <Skeleton height={40} count="4" className="m-3" />;
   }
 
   return <UserRoles user={user} fetchUser={fetchUser} />;
@@ -85,24 +92,28 @@ function RoleRow({ role, userId, fetchUser }) {
   );
 }
 
+/**
+ * Delete a user role from backend
+ */
 function DeleteUserRole({ userId, roleId, fetchUser }) {
   const { t } = useTranslation(["admin"]);
+  const canDelete = usePermissions(adminApi.USERS_PATH, "DELETE");
   const deleteUserPermission = async () => {
-    let result = window.confirm(t("confirmDel"));
+    let result = window.confirm(t("confirmDelRole"));
     if (result === true) {
       var data = { role_id: roleId, user_id: userId };
       try {
         await adminApi.deleteUserRole(data);
         fetchUser();
-        alert(t("shared:success"));
-      } catch (e) {
-        const msg = JSON.stringify(e);
-        alerts.showPopup(msg);
+        alerts.showPopup(t("shared:success"), "success");
+      } catch (err) {
+        console.log(err);
+        alerts.showErrorsPopUp(err);
       }
     }
   };
   return (
-    <Button onClick={deleteUserPermission}>
+    <Button onClick={deleteUserPermission} disabled={!canDelete}>
       <FontAwesomeIcon icon="trash"></FontAwesomeIcon>
     </Button>
   );
@@ -113,14 +124,15 @@ export function AssignRole({ user, fetchUser }) {
   const [disableSave, setDisableSave] = useState(true);
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [roles, setRoles] = useState(user.roles);
+  const canAssign = usePermissions(adminApi.USERS_PATH, "POST");
 
   async function fetchRoles() {
     try {
       const resp = await adminApi.getRoles();
       setRoles(resp.data.data);
     } catch (err) {
-      const msg = JSON.stringify(err);
-      alerts.showPopup(msg);
+      console.log(err);
+      alerts.showErrorsPopUp(err);
     }
   }
 
@@ -129,22 +141,22 @@ export function AssignRole({ user, fetchUser }) {
   }, []);
 
   if (roles.length === 0) {
-    return "Loading...";
+    return null;
   }
   var options = helpers.getUnassignedRoles(roles, user.roles);
 
   const assignRoles = async (e) => {
     e.preventDefault();
     if (!selectedOptions) {
-      alerts.showPopup("No Roles to assign");
+      alerts.showPopup(t("noRoleAdded"));
       return;
     }
     let role_ids = helpers.getPermissionIds(selectedOptions);
     let result;
     if (role_ids.length === 1) {
-      result = window.confirm(t("confirmAssign"));
+      result = window.confirm(t("confirmAssignRole"));
     } else {
-      result = window.confirm(t("confirmAssigns"));
+      result = window.confirm(t("confirmAssignRoles"));
     }
     if (result === true) {
       setDisableSave(true);
@@ -153,10 +165,9 @@ export function AssignRole({ user, fetchUser }) {
         await adminApi.updateUser(data);
         setSelectedOptions([]);
         fetchUser();
-        alert(t("shared:success"));
+        alerts.showPopup(t("shared:success"), "success");
       } catch (err) {
-        const msg = JSON.stringify(e);
-        alerts.showPopup(msg);
+        alerts.showErrorsPopUp(err);
       }
     }
   };
@@ -172,7 +183,7 @@ export function AssignRole({ user, fetchUser }) {
         <Form.Row>
           <Col>
             <Select
-              placeholder={t("defaultValue")}
+              placeholder={t("selectRole")}
               isMulti
               value={selectedOptions}
               onChange={handleChange}
@@ -182,11 +193,11 @@ export function AssignRole({ user, fetchUser }) {
           </Col>
           <Col>
             <Button
-              disabled={disableSave}
+              disabled={disableSave || !canAssign}
               variant="danger"
               onClick={assignRoles}
             >
-              {t("assignPermissions")}
+              {t("assignRoles")}
             </Button>
           </Col>
         </Form.Row>

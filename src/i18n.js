@@ -8,6 +8,7 @@ import * as shared from "./sharedTranslations";
 import * as nav from "./components/nav/translations";
 import * as login from "./components/login/translations";
 import * as admin from "./components/admin/translations";
+import * as errors from "./components/generics/errortranslations";
 // don't want to use this?
 // have a look at the Quick start guide
 // for passing in lng and translations on init
@@ -33,6 +34,7 @@ i18n
         nav: nav.en,
         login: login.en,
         admin: admin.en,
+        errors: errors.en,
       },
       fr: {
         translation: {
@@ -50,7 +52,7 @@ i18n
     debug: process.env.NODE_ENV === "development",
 
     interpolation: {
-      escapeValue: false, // not needed for react as it escapes by default
+      escapeValue: false,
     },
   });
 
